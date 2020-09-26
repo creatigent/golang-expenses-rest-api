@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/steevehook/expenses-rest-api/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/steevehook/expenses-rest-api/config"
 	"github.com/steevehook/expenses-rest-api/controllers"
 	"github.com/steevehook/expenses-rest-api/logging"
 )
