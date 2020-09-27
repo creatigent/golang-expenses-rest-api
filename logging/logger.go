@@ -21,6 +21,7 @@ func Init(cfg *config.Manager) error {
 	zapConfig := zap.NewProductionConfig()
 	zapConfig.Level = zap.NewAtomicLevelAt(logLevel)
 	zapConfig.OutputPaths = cfg.LoggingOutput()
+	zapConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	logger, err := zapConfig.Build()
 	defer func() {
 		_ = logger.Sync()

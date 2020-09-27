@@ -3,22 +3,23 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/steevehook/expenses-rest-api/repositories"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
-	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/steevehook/expenses-rest-api/config"
 	"github.com/steevehook/expenses-rest-api/controllers"
 	"github.com/steevehook/expenses-rest-api/logging"
+	"github.com/steevehook/expenses-rest-api/services"
 )
 
 type App struct {
 	stopOnce sync.Once
 	Server   *http.Server
+	Cfg      *config.Manager
 }
 
 // Init initializes the application
@@ -29,16 +30,22 @@ func Init(configPath string) (*App, error) {
 	}
 
 	if err := logging.Init(configManager); err != nil {
-		fmt.Println(err)
 		return nil, fmt.Errorf("could not initialize logger: %v", err)
 	}
 
+	routerCfg := controllers.RouterConfig{
+		ExpensesSvc: services.Expenses{
+			ExpensesRepo: repositories.FileDriver{},
+		},
+	}
+
 	app := &App{
+		Cfg: configManager,
 		Server: &http.Server{
-			Addr:         ":8080",
-			Handler:      controllers.NewRouter(),
-			ReadTimeout:  200 * time.Microsecond,
-			WriteTimeout: 200 * time.Microsecond,
+			Addr:         configManager.AppListen(),
+			Handler:      controllers.NewRouter(routerCfg),
+			ReadTimeout:  configManager.AppReadTimeout(),
+			WriteTimeout: configManager.AppWriteTimeout(),
 			ErrorLog:     logging.HTTPServerLogger(),
 		},
 	}
@@ -49,7 +56,7 @@ func Init(configPath string) (*App, error) {
 func (a *App) Start() error {
 	logging.Logger.Info(
 		"http server is ready to handle requests",
-		zap.String("listen", ":8080"),
+		zap.String("listen", a.Cfg.AppListen()),
 	)
 
 	err := a.Server.ListenAndServe()
@@ -63,7 +70,7 @@ func (a *App) Start() error {
 // Stop shuts down the http server
 func (a *App) Stop() {
 	a.stopOnce.Do(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), a.Cfg.AppShutdownTimeout())
 		defer cancel()
 
 		logging.Logger.Info("shutting down the http server")

@@ -17,7 +17,6 @@ func main() {
 	)
 	flag.Parse()
 
-
 	application, err := app.Init(*configPath)
 	if err != nil {
 		log.Fatal("could not init application: ", err)
