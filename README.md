@@ -2,6 +2,12 @@
 
 This application is a fully featured REST API written in Go
 
+### Technologies used:
+
+- Golang
+- MariaDB
+- BoltDB
+
 ### Coding Parts
 
 #### Part 1 (...)

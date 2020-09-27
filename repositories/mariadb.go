@@ -46,7 +46,7 @@ func (d MariaDBDriver) DeleteExpenses(ids []string) error {
 	return nil
 }
 
-func (d MariaDBDriver) Stop() error {
+func (d MariaDBDriver) Close() error {
 	logging.Logger.Info("stopping mariadb server")
 	err := d.mariaDB.Close()
 	if err != nil {

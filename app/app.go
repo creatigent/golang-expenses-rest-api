@@ -19,10 +19,10 @@ import (
 )
 
 type App struct {
-	stopOnce  sync.Once
-	Server    *http.Server
-	Cfg       *config.Manager
-	dbStopper Stopper
+	stopOnce sync.Once
+	Server   *http.Server
+	Cfg      *config.Manager
+	dbCloser repositories.Closer
 }
 
 // Init initializes the application
@@ -63,7 +63,7 @@ func Init(configPath string) (*App, error) {
 			WriteTimeout: configManager.AppWriteTimeout(),
 			ErrorLog:     logging.HTTPServerLogger(),
 		},
-		dbStopper: expensesRepo,
+		dbCloser: expensesRepo,
 	}
 	return app, nil
 }
@@ -99,7 +99,7 @@ func (a *App) Stop() error {
 
 		logging.Logger.Info("http server was shut down")
 
-		err = a.dbStopper.Stop()
+		err = a.dbCloser.Close()
 		if err != nil {
 			logging.Logger.Error("could not stop db", zap.Error(err))
 		}

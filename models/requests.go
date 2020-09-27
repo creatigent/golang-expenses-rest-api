@@ -2,9 +2,8 @@ package models
 
 // GetAllExpensesRequest represents http request for fetching all expenses with pagination
 type GetAllExpensesRequest struct {
-	IDs  []string
-	Page int
-	Size int
+	Page     int
+	PageSize int
 }
 
 // GetExpensesByIDsRequest represents http request for fetching a list of expenses by ids
