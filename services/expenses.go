@@ -24,8 +24,13 @@ func (s Expenses) GetAllExpenses(req models.GetAllExpensesRequest) ([]models.Exp
 }
 
 // GetExpensesByIDs fetches expenses by a list of given IDs
-func (s Expenses) GetExpensesByIDs(req models.GetAllExpensesRequest) ([]models.Expense, error) {
-	return []models.Expense{}, nil
+func (s Expenses) GetExpensesByIDs(req models.GetExpensesByIDsRequest) ([]models.Expense, error) {
+	expenses, err := s.ExpensesRepo.GetExpensesByIDs(req.IDs)
+	if err != nil {
+		logging.Logger.Error("could not fetch expenses by ids from db", zap.Error(err))
+		return []models.Expense{}, err
+	}
+	return expenses, nil
 }
 
 // CreateExpense creates a brand new expense
@@ -44,6 +49,7 @@ func (s Expenses) UpdateExpense(req models.UpdateExpenseRequest) error {
 
 // DeleteExpenses deletes a list of expenses by a given list of IDs
 func (s Expenses) DeleteExpenses(req models.DeleteExpensesRequest) error {
+	// maybe one by one (single delete)
 	return nil
 }
 

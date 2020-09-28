@@ -9,6 +9,11 @@ import (
 	"github.com/steevehook/expenses-rest-api/middleware"
 )
 
+const (
+	idRouteParam  = "id"
+	idsRouteParam = "ids"
+)
+
 type ExpensesService interface {
 	allExpensesGetter
 	expensesByIDsGetter
@@ -38,10 +43,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	router := httprouter.New()
 	router.Handler(http.MethodGet, "/expenses", route(getAllExpenses(cfg.ExpensesSvc)))
-	router.Handler(http.MethodGet, "/expenses/:ids", route(getExpensesByIDs(cfg.ExpensesSvc)))
+	router.Handler(http.MethodGet, "/expenses/:"+idsRouteParam, route(getExpensesByIDs(cfg.ExpensesSvc)))
 	router.Handler(http.MethodPost, "/expenses", routeWithBody(createExpense(cfg.ExpensesSvc)))
-	router.Handler(http.MethodPatch, "/expenses/:id", routeWithBody(updateExpense(cfg.ExpensesSvc)))
-	router.Handler(http.MethodDelete, "/expenses/:ids", route(deleteExpense(cfg.ExpensesSvc)))
+	router.Handler(http.MethodPatch, "/expenses/:"+idRouteParam, routeWithBody(updateExpense(cfg.ExpensesSvc)))
+	router.Handler(http.MethodDelete, "/expenses/:"+idsRouteParam, route(deleteExpense(cfg.ExpensesSvc)))
 	router.NotFound = route(NotFound())
 
 	return router

@@ -26,6 +26,7 @@ type allExpensesGetter interface {
 
 type getAllExpensesResponse struct {
 	Items    []models.Expense `json:"items"`
+	Total    int              `json:"total"`
 	NextPage string           `json:"next_page,omitempty"`
 	PrevPage string           `json:"prev_page,omitempty"`
 }
@@ -59,6 +60,7 @@ func getAllExpenses(service allExpensesGetter) http.Handler {
 		}
 		res := getAllExpensesResponse{
 			Items: expenses,
+			Total: count,
 		}
 		if page*pageSize+1 <= count {
 			res.NextPage = fmt.Sprintf("%s?%s", r.URL.Path, encodePageParams(page+1, pageSize))

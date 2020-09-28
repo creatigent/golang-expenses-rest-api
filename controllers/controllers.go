@@ -2,8 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -11,19 +14,20 @@ import (
 	"github.com/steevehook/expenses-rest-api/models"
 )
 
-// params fetches params from context and converts it into julienschmidt/httprouter.Params struct
-func params(r *http.Request) httprouter.Params {
+// routeParam fetches params from context and converts it into julienschmidt/httprouter.Params struct
+func routeParam(r *http.Request, name string) string {
 	ctx := r.Context()
 	psCtx := ctx.Value(httprouter.ParamsKey)
 	ps, ok := psCtx.(httprouter.Params)
 
 	if !ok {
 		logging.Logger.Error("could not extract params from context")
-		return httprouter.Params{}
+		return ""
 	}
-	return ps
+	return ps.ByName(name)
 }
 
+// parseBody parses JSON request body
 func parseBody(r *http.Request, v interface{}) error {
 	bs, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -41,4 +45,20 @@ func parseBody(r *http.Request, v interface{}) error {
 		}
 	}
 	return nil
+}
+
+// parseIDsParam parses ids route params and validates it
+func parseIDsParam(r *http.Request) ([]string, error) {
+	// approximately max 50 UUIDs in URL
+	ids := strings.Split(routeParam(r, idsRouteParam), ",")
+	for _, id := range ids {
+		_, err := uuid.Parse(id)
+		if err != nil {
+			e := models.FormatValidationError{
+				Message: fmt.Sprintf("invalid uuid: %s", id),
+			}
+			return []string{}, e
+		}
+	}
+	return ids, nil
 }
