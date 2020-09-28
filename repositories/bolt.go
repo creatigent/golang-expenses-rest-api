@@ -31,7 +31,7 @@ type BoltDriver struct {
 func NewBoltDriver(filename string) (*BoltDriver, error) {
 	db, err := bolt.Open(filename, 0600, nil)
 	if err != nil {
-		logging.Logger.Error("could not create file database", zap.Error(err))
+		logging.Logger.Error("could not create/open bolt file database", zap.Error(err))
 		return nil, err
 	}
 
@@ -46,7 +46,6 @@ func (d BoltDriver) GetAllExpenses(page, pageSize int) ([]models.Expense, error)
 	expenses := make([]models.Expense, 0)
 	err := d.boltDB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(expensesBucket)
-
 		c := bucket.Cursor()
 		for i := 1; i <= pageSize; i++ {
 			keyLookup := []byte(strconv.Itoa(page*pageSize - pageSize + i))
@@ -55,10 +54,8 @@ func (d BoltDriver) GetAllExpenses(page, pageSize int) ([]models.Expense, error)
 				break
 			}
 
-			var expense models.Expense
-			err := json.Unmarshal(v, &expense)
+			expense, err := d.unmarshalExpense(v)
 			if err != nil {
-				logging.Logger.Error("could not unmarshal expense when fetching all expenses", zap.Error(err))
 				return err
 			}
 			if bytes.Equal(keyLookup, k) {
@@ -78,7 +75,6 @@ func (d BoltDriver) GetAllExpenses(page, pageSize int) ([]models.Expense, error)
 func (d BoltDriver) GetExpensesByIDs(ids []string) ([]models.Expense, error) {
 	expenses := make([]models.Expense, 0)
 	idsLookup := make([][]byte, 0)
-
 	err := d.boltDB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(expensesIDsBucket)
 		for _, uid := range ids {
@@ -89,20 +85,12 @@ func (d BoltDriver) GetExpensesByIDs(ids []string) ([]models.Expense, error) {
 			}
 			idsLookup = append(idsLookup, id)
 		}
-		return nil
-	})
-	if err != nil {
-		logging.Logger.Error("could not fetch uid:id pairs", zap.Error(err))
-		return []models.Expense{}, err
-	}
 
-	err = d.boltDB.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(expensesBucket)
+		bucket = tx.Bucket(expensesBucket)
 		for _, id := range idsLookup {
-			var expense models.Expense
 			bs := bucket.Get([]byte(id))
-			if e := json.Unmarshal(bs, &expense); e != nil {
-				logging.Logger.Error("could not unmarshal expense when fetching by ids", zap.Error(err))
+			expense, err := d.unmarshalExpense(bs)
+			if err != nil {
 				return err
 			}
 			expenses = append(expenses, expense)
@@ -110,7 +98,7 @@ func (d BoltDriver) GetExpensesByIDs(ids []string) ([]models.Expense, error) {
 		return nil
 	})
 	if err != nil {
-		logging.Logger.Error("could not fetch expenses by ids", zap.Error(err))
+		logging.Logger.Error("could not fetch expenses by ids from db", zap.Error(err))
 		return []models.Expense{}, err
 	}
 	return expenses, nil
@@ -167,35 +155,17 @@ func (d BoltDriver) CreateExpense(title, currency string, price float64) error {
 
 // UpdateExpense updates an existing expense and updates the record in BoltDB
 func (d BoltDriver) UpdateExpense(id, title, currency string, price float64) error {
-	var lookupID []byte
-	err := d.boltDB.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(expensesIDsBucket)
-		intID := bucket.Get([]byte(id))
-		if len(intID) == 0 {
-			return models.ResourceNotFoundError{}
-		}
-		lookupID = intID
-		return nil
-	})
+	lookupID, err := d.getExpenseID(id)
 	if err != nil {
-		logging.Logger.Error("could not fetch uid:id for update expense", zap.Error(err))
 		return err
 	}
-
 	return d.boltDB.Update(func(tx *bolt.Tx) error {
 		var modified bool
 		bucket := tx.Bucket(expensesBucket)
-		bs := bucket.Get(lookupID)
-		if len(bs) == 0 {
-			return models.ResourceNotFoundError{}
-		}
-		var expense models.Expense
-		err := json.Unmarshal(bs, &expense)
+		expense, err := d.unmarshalExpense(bucket.Get(lookupID))
 		if err != nil {
-			logging.Logger.Error("could not unmarshal expense for update in db", zap.Error(err))
 			return err
 		}
-
 		if title != "" && title != expense.Title {
 			expense.Title = title
 			modified = true
@@ -212,7 +182,7 @@ func (d BoltDriver) UpdateExpense(id, title, currency string, price float64) err
 			expense.ModifiedAt = time.Now().UTC()
 		}
 
-		bs, err = json.Marshal(expense)
+		bs, err := json.Marshal(expense)
 		if err != nil {
 			logging.Logger.Error("could not marshal expense for update in db", zap.Error(err))
 			return err
@@ -227,9 +197,28 @@ func (d BoltDriver) UpdateExpense(id, title, currency string, price float64) err
 	})
 }
 
-// DeleteExpense deletes a list of expenses from BoltDB given a list of IDs
-func (d BoltDriver) DeleteExpense(id []string) error {
-	return nil
+// DeleteExpense deletes a given expense from BoltDB given a list of IDs
+func (d BoltDriver) DeleteExpense(id string) error {
+	lookupID, err := d.getExpenseID(id)
+	if err != nil {
+		return err
+	}
+	return d.boltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(expensesBucket)
+		err := bucket.Delete(lookupID)
+		if err != nil {
+			logging.Logger.Error("could not delete expense from db", zap.Error(err))
+			return err
+		}
+
+		bucket = tx.Bucket(expensesIDsBucket)
+		err = bucket.Delete([]byte(id))
+		if err != nil {
+			logging.Logger.Error("could not delete uid:id pair from db", zap.Error(err))
+			return err
+		}
+		return nil
+	})
 }
 
 // Count fetches the total count from expenses bucket from BoltDB
@@ -273,4 +262,34 @@ func (d BoltDriver) setExpenseID(id []byte, uid []byte) error {
 		}
 		return nil
 	})
+}
+
+func (d BoltDriver) getExpenseID(id string) ([]byte, error) {
+	var lookupID []byte
+	err := d.boltDB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(expensesIDsBucket)
+		intID := bucket.Get([]byte(id))
+		if len(intID) == 0 {
+			return models.ResourceNotFoundError{
+				Message: fmt.Sprintf("could not find expense with id: %s", id),
+			}
+		}
+		lookupID = intID
+		return nil
+	})
+	if err != nil {
+		logging.Logger.Debug(fmt.Sprintf("could not fetch uid:id for id: %s", id))
+		return []byte{}, err
+	}
+	return lookupID, nil
+}
+
+func (d BoltDriver) unmarshalExpense(data []byte) (models.Expense, error) {
+	var expense models.Expense
+	err := json.Unmarshal(data, &expense)
+	if err != nil {
+		logging.Logger.Error("could not unmarshal expense", zap.Error(err))
+		return models.Expense{}, err
+	}
+	return expense, nil
 }

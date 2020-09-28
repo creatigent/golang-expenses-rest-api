@@ -67,7 +67,7 @@ func toHTTPError(err error) models.HTTPError {
 		return models.HTTPError{
 			Code:    http.StatusNotFound,
 			Type:    ResourceNotFoundErrorType,
-			Message: e.Error(),
+			Message: e.Message,
 		}
 
 	default:

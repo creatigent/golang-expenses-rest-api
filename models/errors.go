@@ -43,8 +43,13 @@ func (e InvalidJSONError) Error() string {
 }
 
 // ResourceNotFoundError represents an error type for not found resources on the server
-type ResourceNotFoundError struct{}
+type ResourceNotFoundError struct {
+	Message string
+}
 
 func (e ResourceNotFoundError) Error() string {
-	return "resource not found"
+	if e.Message == "" {
+		return "resource not found"
+	}
+	return e.Message
 }

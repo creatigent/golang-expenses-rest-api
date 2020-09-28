@@ -52,8 +52,8 @@ func (s Expenses) UpdateExpense(req models.UpdateExpenseRequest) error {
 }
 
 // DeleteExpense deletes a list of expenses by a given list of IDs
-func (s Expenses) DeleteExpense(req models.DeleteExpenseRequest) error {
-	return nil
+func (s Expenses) DeleteExpense(id string) error {
+	return s.ExpensesRepo.DeleteExpense(id)
 }
 
 // ExpensesCount fetches the total count of created expenses

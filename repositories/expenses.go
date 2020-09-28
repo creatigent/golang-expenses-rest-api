@@ -14,7 +14,7 @@ type Expenses interface {
 	GetExpensesByIDs(ids []string) ([]models.Expense, error)
 	CreateExpense(title, currency string, price float64) error
 	UpdateExpense(id, title, currency string, price float64) error
-	DeleteExpense(ids []string) error
+	DeleteExpense(id string) error
 	Count() (int, error)
 	Closer
 }

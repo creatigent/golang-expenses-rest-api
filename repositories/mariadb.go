@@ -47,8 +47,8 @@ func (d MariaDBDriver) UpdateExpense(id, title, currency string, price float64) 
 	return nil
 }
 
-// DeleteExpense deletes a list of expenses from MariaDB given a list of IDs
-func (d MariaDBDriver) DeleteExpense(id []string) error {
+// DeleteExpense deletes a given expense from MariaDB given a list of IDs
+func (d MariaDBDriver) DeleteExpense(id string) error {
 	return nil
 }
 

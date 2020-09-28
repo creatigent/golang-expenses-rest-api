@@ -38,11 +38,6 @@ func (r UpdateExpenseRequest) Validate() error {
 	return validateExpenseReqBody(r.Title, r.Currency, r.Price, true)
 }
 
-// DeleteExpenseRequest represents http request for deleting an expense
-type DeleteExpenseRequest struct {
-	IDs []string
-}
-
 func validateExpenseReqBody(title, currency string, price float64, optional bool) error {
 	if !optional && strings.TrimSpace(title) == "" {
 		return DataValidationError{Message: "title should not be empty"}
