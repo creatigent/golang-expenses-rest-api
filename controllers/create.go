@@ -23,6 +23,10 @@ func createExpense(service expenseCreator) http.Handler {
 			transport.SendHTTPError(w, err)
 			return
 		}
+		if err := req.Validate(); err != nil {
+			transport.SendHTTPError(w, err)
+			return
+		}
 
 		err = service.CreateExpense(req)
 		if err != nil {
