@@ -15,5 +15,6 @@ type Expenses interface {
 	CreateExpense(title, currency string, price float64) error
 	UpdateExpense(title, currency string, price float64) error
 	DeleteExpenses(ids []string) error
+	Count() (int, error)
 	Closer
 }

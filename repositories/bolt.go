@@ -22,6 +22,7 @@ type BoltDriver struct {
 	boltDB *bolt.DB
 }
 
+// NewBoltDriver creates a new instance of Bolt file database
 func NewBoltDriver(filename string) (*BoltDriver, error) {
 	db, err := bolt.Open(filename, 0600, nil)
 	if err != nil {
@@ -35,6 +36,7 @@ func NewBoltDriver(filename string) (*BoltDriver, error) {
 	return driver, nil
 }
 
+// GetAllExpenses fetches all expenses with pagination possibilities from BoltDB
 func (d BoltDriver) GetAllExpenses(page, pageSize int) ([]models.Expense, error) {
 	expenses := make([]models.Expense, 0)
 	err := d.boltDB.View(func(tx *bolt.Tx) error {
@@ -67,10 +69,12 @@ func (d BoltDriver) GetAllExpenses(page, pageSize int) ([]models.Expense, error)
 	return expenses, nil
 }
 
+// GetExpensesByIDs fetches a list of expenses by a given list of IDs from BoldDB
 func (d BoltDriver) GetExpensesByIDs(ids []string) ([]models.Expense, error) {
 	return []models.Expense{}, nil
 }
 
+// CreateExpense creates a brand new expense and saves it into BoltDB
 func (d BoltDriver) CreateExpense(title, currency string, price float64) error {
 	return d.boltDB.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(expensesBucket)
@@ -103,7 +107,7 @@ func (d BoltDriver) CreateExpense(title, currency string, price float64) error {
 		}
 		err = bucket.Put(idData, bs)
 		if err != nil {
-			logging.Logger.Error("could save expense in db")
+			logging.Logger.Error("could not save expense in db")
 			return err
 		}
 		logging.Logger.Info("successfully saved expense in db")
@@ -111,16 +115,34 @@ func (d BoltDriver) CreateExpense(title, currency string, price float64) error {
 	})
 }
 
+// UpdateExpense updates an existing expense and updates the record in BoltDB
 func (d BoltDriver) UpdateExpense(title, currency string, price float64) error {
 	return nil
 }
 
+// DeleteExpenses deletes a list of expenses from BoltDB given a list of IDs
 func (d BoltDriver) DeleteExpenses(ids []string) error {
 	return nil
 }
 
+// Count fetches the total count from expenses bucket from BoltDB
+func (d BoltDriver) Count() (int, error) {
+	var count int
+	err := d.boltDB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(expensesBucket)
+		count = bucket.Stats().KeyN
+		return nil
+	})
+	if err != nil {
+		logging.Logger.Error("could not count total count of expenses")
+		return 0, err
+	}
+	return count, nil
+}
+
+// Close closes the BoltDB database
 func (d BoltDriver) Close() error {
-	logging.Logger.Info("stopping file db server")
+	logging.Logger.Info("stopping boltdb file database server")
 	err := d.boltDB.Close()
 	if err != nil {
 		return err

@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,13 @@ const (
 
 type allExpensesGetter interface {
 	GetAllExpenses(models.GetAllExpensesRequest) ([]models.Expense, error)
+	ExpensesCount() (int, error)
+}
+
+type getAllExpensesResponse struct {
+	Items    []models.Expense `json:"items"`
+	NextPage string           `json:"next_page,omitempty"`
+	PrevPage string           `json:"prev_page,omitempty"`
 }
 
 func getAllExpenses(service allExpensesGetter) http.Handler {
@@ -44,7 +52,21 @@ func getAllExpenses(service allExpensesGetter) http.Handler {
 			transport.SendHTTPError(w, err)
 			return
 		}
-		transport.SendJSON(w, http.StatusOK, expenses)
+		count, err := service.ExpensesCount()
+		if err != nil {
+			transport.SendHTTPError(w, err)
+			return
+		}
+		res := getAllExpensesResponse{
+			Items: expenses,
+		}
+		if page*pageSize+1 <= count {
+			res.NextPage = fmt.Sprintf("%s?%s", r.URL.Path, encodePageParams(page+1, pageSize))
+		}
+		if page*pageSize-1 <= count && page-1 > 0 {
+			res.PrevPage = fmt.Sprintf("%s?%s", r.URL.Path, encodePageParams(page-1, pageSize))
+		}
+		transport.SendJSON(w, http.StatusOK, res)
 	})
 }
 
@@ -61,4 +83,11 @@ func parseQueryParam(r *http.Request, paramName string, defaultValue int) (int, 
 		return 0, e
 	}
 	return intParam, nil
+}
+
+func encodePageParams(page, pageSize int) string {
+	params := url.Values{}
+	params.Add(pageQueryParam, strconv.Itoa(page))
+	params.Add(pageSizeQueryParam, strconv.Itoa(pageSize))
+	return params.Encode()
 }

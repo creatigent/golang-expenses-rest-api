@@ -8,10 +8,12 @@ import (
 	"github.com/steevehook/expenses-rest-api/repositories"
 )
 
+// Expenses represents the Expenses service
 type Expenses struct {
 	ExpensesRepo repositories.Expenses
 }
 
+// GetAllExpenses fetches all expenses with pagination possibilities
 func (s Expenses) GetAllExpenses(req models.GetAllExpensesRequest) ([]models.Expense, error) {
 	expenses, err := s.ExpensesRepo.GetAllExpenses(req.Page, req.PageSize)
 	if err != nil {
@@ -21,10 +23,12 @@ func (s Expenses) GetAllExpenses(req models.GetAllExpensesRequest) ([]models.Exp
 	return expenses, nil
 }
 
+// GetExpensesByIDs fetches expenses by a list of given IDs
 func (s Expenses) GetExpensesByIDs(req models.GetAllExpensesRequest) ([]models.Expense, error) {
 	return []models.Expense{}, nil
 }
 
+// CreateExpense creates a brand new expense
 func (s Expenses) CreateExpense(req models.CreateExpenseRequest) error {
 	err := s.ExpensesRepo.CreateExpense(req.Title, req.Currency, req.Price)
 	if err != nil {
@@ -33,10 +37,17 @@ func (s Expenses) CreateExpense(req models.CreateExpenseRequest) error {
 	return nil
 }
 
+// UpdateExpense updates an existing created expense
 func (s Expenses) UpdateExpense(req models.UpdateExpenseRequest) error {
 	return nil
 }
 
+// DeleteExpenses deletes a list of expenses by a given list of IDs
 func (s Expenses) DeleteExpenses(req models.DeleteExpensesRequest) error {
 	return nil
+}
+
+// ExpensesCount fetches the total count of created expenses
+func (s Expenses) ExpensesCount() (int, error) {
+	return s.ExpensesRepo.Count()
 }
