@@ -6,11 +6,11 @@ import (
 	"github.com/steevehook/expenses-rest-api/models"
 )
 
-type expensesDeleter interface {
-	DeleteExpenses(models.DeleteExpensesRequest) error
+type expenseDeleter interface {
+	DeleteExpense(models.DeleteExpenseRequest) error
 }
 
-func deleteExpense(service expensesDeleter) http.Handler {
+func deleteExpense(service expenseDeleter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	})
 }

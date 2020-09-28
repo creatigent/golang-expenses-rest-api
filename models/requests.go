@@ -28,6 +28,7 @@ func (r CreateExpenseRequest) Validate() error {
 
 // UpdateExpenseRequest represents http request for updating an expense
 type UpdateExpenseRequest struct {
+	ID       string
 	Title    string  `json:"title"`
 	Price    float64 `json:"price"`
 	Currency string  `json:"currency"`
@@ -37,8 +38,8 @@ func (r UpdateExpenseRequest) Validate() error {
 	return validateExpenseReqBody(r.Title, r.Currency, r.Price, true)
 }
 
-// DeleteExpensesRequest represents http request for deleting multiple expenses
-type DeleteExpensesRequest struct {
+// DeleteExpenseRequest represents http request for deleting an expense
+type DeleteExpenseRequest struct {
 	IDs []string
 }
 

@@ -159,19 +159,76 @@ func (d BoltDriver) CreateExpense(title, currency string, price float64) error {
 		return nil
 	})
 	if err != nil {
-		logging.Logger.Info("could not create expense in db")
+		logging.Logger.Error("could not create expense in db", zap.Error(err))
 		return err
 	}
 	return d.setExpenseID(idLookup, uidLookup)
 }
 
 // UpdateExpense updates an existing expense and updates the record in BoltDB
-func (d BoltDriver) UpdateExpense(title, currency string, price float64) error {
-	return nil
+func (d BoltDriver) UpdateExpense(id, title, currency string, price float64) error {
+	var lookupID []byte
+	err := d.boltDB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(expensesIDsBucket)
+		intID := bucket.Get([]byte(id))
+		if len(intID) == 0 {
+			return models.ResourceNotFoundError{}
+		}
+		lookupID = intID
+		return nil
+	})
+	if err != nil {
+		logging.Logger.Error("could not fetch uid:id for update expense", zap.Error(err))
+		return err
+	}
+
+	return d.boltDB.Update(func(tx *bolt.Tx) error {
+		var modified bool
+		bucket := tx.Bucket(expensesBucket)
+		bs := bucket.Get(lookupID)
+		if len(bs) == 0 {
+			return models.ResourceNotFoundError{}
+		}
+		var expense models.Expense
+		err := json.Unmarshal(bs, &expense)
+		if err != nil {
+			logging.Logger.Error("could not unmarshal expense for update in db", zap.Error(err))
+			return err
+		}
+
+		if title != "" && title != expense.Title {
+			expense.Title = title
+			modified = true
+		}
+		if price > 0 && price != expense.Price {
+			expense.Price = price
+			modified = true
+		}
+		if currency != "" && currency != expense.Currency {
+			expense.Currency = currency
+			modified = true
+		}
+		if modified {
+			expense.ModifiedAt = time.Now().UTC()
+		}
+
+		bs, err = json.Marshal(expense)
+		if err != nil {
+			logging.Logger.Error("could not marshal expense for update in db", zap.Error(err))
+			return err
+		}
+
+		err = bucket.Put(lookupID, bs)
+		if err != nil {
+			logging.Logger.Error("could not update expense in db", zap.Error(err))
+			return err
+		}
+		return nil
+	})
 }
 
-// DeleteExpenses deletes a list of expenses from BoltDB given a list of IDs
-func (d BoltDriver) DeleteExpenses(ids []string) error {
+// DeleteExpense deletes a list of expenses from BoltDB given a list of IDs
+func (d BoltDriver) DeleteExpense(id []string) error {
 	return nil
 }
 

@@ -47,7 +47,20 @@ func parseBody(r *http.Request, v interface{}) error {
 	return nil
 }
 
-// parseIDsParam parses ids route params and validates it
+// parseIDParam parses id route param and validates it
+func parseIDParam(r *http.Request) (string, error) {
+	id := routeParam(r, idRouteParam)
+	_, err := uuid.Parse(id)
+	if err != nil {
+		e := models.FormatValidationError{
+			Message: fmt.Sprintf("invalid uuid: %s", id),
+		}
+		return "", e
+	}
+	return id, nil
+}
+
+// parseIDsParam parses ids route param and validates it
 func parseIDsParam(r *http.Request) ([]string, error) {
 	// approximately max 50 UUIDs in URL
 	ids := strings.Split(routeParam(r, idsRouteParam), ",")

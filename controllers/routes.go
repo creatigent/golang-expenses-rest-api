@@ -19,7 +19,7 @@ type ExpensesService interface {
 	expensesByIDsGetter
 	expenseCreator
 	expenseUpdater
-	expensesDeleter
+	expenseDeleter
 }
 
 type RouterConfig struct {
@@ -46,7 +46,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	router.Handler(http.MethodGet, "/expenses/:"+idsRouteParam, route(getExpensesByIDs(cfg.ExpensesSvc)))
 	router.Handler(http.MethodPost, "/expenses", routeWithBody(createExpense(cfg.ExpensesSvc)))
 	router.Handler(http.MethodPatch, "/expenses/:"+idRouteParam, routeWithBody(updateExpense(cfg.ExpensesSvc)))
-	router.Handler(http.MethodDelete, "/expenses/:"+idsRouteParam, route(deleteExpense(cfg.ExpensesSvc)))
+	router.Handler(http.MethodDelete, "/expenses/:"+idRouteParam, route(deleteExpense(cfg.ExpensesSvc)))
 	router.NotFound = route(NotFound())
 
 	return router

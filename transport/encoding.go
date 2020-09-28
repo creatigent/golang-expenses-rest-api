@@ -15,6 +15,8 @@ const (
 	DataValidationErrorType = "data_validation_error"
 	// FormatValidationErrorType describes format validation errors
 	FormatValidationErrorType = "format_validation_error"
+	// ResourceNotFoundErrorType describes a severe resource not found
+	ResourceNotFoundErrorType = "resource_not_found"
 	// ServiceErrorType describes a severe generic server error
 	ServiceErrorType = "service_error"
 )
@@ -59,6 +61,13 @@ func toHTTPError(err error) models.HTTPError {
 			Code:    http.StatusBadRequest,
 			Type:    DataValidationErrorType,
 			Message: e.Message,
+		}
+
+	case models.ResourceNotFoundError:
+		return models.HTTPError{
+			Code:    http.StatusNotFound,
+			Type:    ResourceNotFoundErrorType,
+			Message: e.Error(),
 		}
 
 	default:

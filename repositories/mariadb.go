@@ -43,12 +43,12 @@ func (d MariaDBDriver) CreateExpense(title, currency string, price float64) erro
 }
 
 // UpdateExpense updates an existing expense and updates the record in MariaDB
-func (d MariaDBDriver) UpdateExpense(title, currency string, price float64) error {
+func (d MariaDBDriver) UpdateExpense(id, title, currency string, price float64) error {
 	return nil
 }
 
-// DeleteExpenses deletes a list of expenses from MariaDB given a list of IDs
-func (d MariaDBDriver) DeleteExpenses(ids []string) error {
+// DeleteExpense deletes a list of expenses from MariaDB given a list of IDs
+func (d MariaDBDriver) DeleteExpense(id []string) error {
 	return nil
 }
 

@@ -27,5 +27,20 @@ func updateExpense(service expenseUpdater) http.Handler {
 			transport.SendHTTPError(w, err)
 			return
 		}
+
+		id, err := parseIDParam(r)
+		if err != nil {
+			transport.SendHTTPError(w, err)
+			return
+		}
+		req.ID = id
+
+		err = service.UpdateExpense(req)
+		if err != nil {
+			transport.SendHTTPError(w, err)
+			return
+		}
+		logging.Logger.Info("successfully updated the expense")
+		w.WriteHeader(http.StatusNoContent)
 	})
 }

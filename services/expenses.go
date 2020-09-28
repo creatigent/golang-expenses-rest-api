@@ -44,12 +44,15 @@ func (s Expenses) CreateExpense(req models.CreateExpenseRequest) error {
 
 // UpdateExpense updates an existing created expense
 func (s Expenses) UpdateExpense(req models.UpdateExpenseRequest) error {
+	err := s.ExpensesRepo.UpdateExpense(req.ID, req.Title, req.Currency, req.Price)
+	if err != nil {
+		logging.Logger.Error("could not update expense in db", zap.Error(err))
+	}
 	return nil
 }
 
-// DeleteExpenses deletes a list of expenses by a given list of IDs
-func (s Expenses) DeleteExpenses(req models.DeleteExpensesRequest) error {
-	// maybe one by one (single delete)
+// DeleteExpense deletes a list of expenses by a given list of IDs
+func (s Expenses) DeleteExpense(req models.DeleteExpenseRequest) error {
 	return nil
 }
 
