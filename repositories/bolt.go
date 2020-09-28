@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -15,7 +16,11 @@ import (
 	"github.com/steevehook/expenses-rest-api/models"
 )
 
-var expensesBucket = []byte("expenses")
+// BoltDB buckets
+var (
+	expensesBucket    = []byte("expenses")
+	expensesIDsBucket = []byte("expenses_ids")
+)
 
 // BoltDriver represents BoltDB repository driver
 type BoltDriver struct {
@@ -71,12 +76,50 @@ func (d BoltDriver) GetAllExpenses(page, pageSize int) ([]models.Expense, error)
 
 // GetExpensesByIDs fetches a list of expenses by a given list of IDs from BoldDB
 func (d BoltDriver) GetExpensesByIDs(ids []string) ([]models.Expense, error) {
-	return []models.Expense{}, nil
+	expenses := make([]models.Expense, 0)
+	idsLookup := make([][]byte, 0)
+
+	err := d.boltDB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(expensesIDsBucket)
+		for _, uid := range ids {
+			id := bucket.Get([]byte(uid))
+			if len(id) == 0 {
+				logging.Logger.Debug(fmt.Sprintf("record with id: %s was not found in db", uid))
+				continue
+			}
+			idsLookup = append(idsLookup, id)
+		}
+		return nil
+	})
+	if err != nil {
+		logging.Logger.Error("could not fetch uid:id pairs", zap.Error(err))
+		return []models.Expense{}, err
+	}
+
+	err = d.boltDB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(expensesBucket)
+		for _, id := range idsLookup {
+			var expense models.Expense
+			bs := bucket.Get([]byte(id))
+			if e := json.Unmarshal(bs, &expense); e != nil {
+				logging.Logger.Error("could not unmarshal expense when fetching by ids", zap.Error(err))
+				return err
+			}
+			expenses = append(expenses, expense)
+		}
+		return nil
+	})
+	if err != nil {
+		logging.Logger.Error("could not fetch expenses by ids", zap.Error(err))
+		return []models.Expense{}, err
+	}
+	return expenses, nil
 }
 
 // CreateExpense creates a brand new expense and saves it into BoltDB
 func (d BoltDriver) CreateExpense(title, currency string, price float64) error {
-	return d.boltDB.Update(func(tx *bolt.Tx) error {
+	var idLookup, uidLookup []byte
+	err := d.boltDB.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(expensesBucket)
 		if err != nil {
 			logging.Logger.Error("could not create bucket", zap.Error(err))
@@ -111,8 +154,15 @@ func (d BoltDriver) CreateExpense(title, currency string, price float64) error {
 			return err
 		}
 		logging.Logger.Info("successfully saved expense in db")
+		idLookup = idData
+		uidLookup = []byte(id.String())
 		return nil
 	})
+	if err != nil {
+		logging.Logger.Info("could not create expense in db")
+		return err
+	}
+	return d.setExpenseID(idLookup, uidLookup)
 }
 
 // UpdateExpense updates an existing expense and updates the record in BoltDB
@@ -134,7 +184,7 @@ func (d BoltDriver) Count() (int, error) {
 		return nil
 	})
 	if err != nil {
-		logging.Logger.Error("could not count total count of expenses")
+		logging.Logger.Error("could not count total count of expenses", zap.Error(err))
 		return 0, err
 	}
 	return count, nil
@@ -150,4 +200,20 @@ func (d BoltDriver) Close() error {
 
 	logging.Logger.Info("file db server successfully stopped")
 	return nil
+}
+
+func (d BoltDriver) setExpenseID(id []byte, uid []byte) error {
+	return d.boltDB.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(expensesIDsBucket)
+		if err != nil {
+			logging.Logger.Error("could not create or open expenses ids bucket", zap.Error(err))
+			return err
+		}
+		err = bucket.Put(uid, id)
+		if err != nil {
+			logging.Logger.Error("could not save uid:id record in boltdb", zap.Error(err))
+			return err
+		}
+		return nil
+	})
 }
