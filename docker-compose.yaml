@@ -1,7 +1,7 @@
 version: "3.8"
 services:
-  db:
-    image: mariadb
+  mariadb:
+    image: mariadb:10.5.5
     restart: always
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "true"
@@ -9,10 +9,52 @@ services:
       MYSQL_USER: user
       MYSQL_DATABASE: expenses
     volumes:
-      - db-data:/var/lib/mysql
+      - mariadb-data:/var/lib/mysql
       - ./db-migration:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
 
+#  loki:
+#    image: grafana/loki:1.5.0
+#    restart: always
+#    ports:
+#      - "3100:3100"
+#    command: -config.file=/etc/loki/loki-config.yaml
+#    networks:
+#      - loki
+#    volumes:
+#      #- ./config/loki-config.yaml:/etc/loki/loki-config.yaml
+#      - loki-data:/loki
+#
+#  promtail:
+#    image: grafana/promtail:1.5.0
+#    restart: always
+#    command: -config.file=/etc/promtail/promtail-config.yaml
+#    networks:
+#      - loki
+#    volumes:
+#      - /var/log:/var/log
+#      - ./config/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+
+  grafana:
+    image: grafana/grafana:7.2.0
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - loki
+    environment:
+      - GF_PATHS_DATA=/var/lib/grafana
+      #- GF_LOG_MODE=console file"
+      - GF_PATHS_LOGS=/var/log/grafana
+      - GF_PATHS_PLUGINS=/var/lib/grafana/plugins
+    volumes:
+      - grafana-data:/var/lib/grafana
+
 volumes:
-  db-data:
+  mariadb-data:
+  loki-data:
+  grafana-data:
+
+networks:
+  loki:
