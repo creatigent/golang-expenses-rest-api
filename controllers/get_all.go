@@ -65,7 +65,7 @@ func getAllExpenses(service allExpensesGetter) http.Handler {
 		if page*pageSize+1 <= count {
 			res.NextPage = fmt.Sprintf("%s?%s", r.URL.Path, encodePageParams(page+1, pageSize))
 		}
-		if page*pageSize-1 <= count && page-1 > 0 {
+		if (page-1)*pageSize < count && page-1 > 0 {
 			res.PrevPage = fmt.Sprintf("%s?%s", r.URL.Path, encodePageParams(page-1, pageSize))
 		}
 		transport.SendJSON(w, http.StatusOK, res)

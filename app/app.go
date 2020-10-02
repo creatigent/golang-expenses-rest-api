@@ -43,7 +43,13 @@ func Init(configPath string) (*App, error) {
 			return nil, err
 		}
 	case models.MariaDBType:
-		expensesRepo, err = repositories.NewMariaDBDriver(configManager.MariaDBUrl())
+		dbSettings := repositories.MariaDBSettings{
+			URL:                configManager.MariaDBUrl(),
+			MaxOpenConnections: configManager.MariaDBMaxOpenConnections(),
+			MaxIdleConnections: configManager.MariaDBMaxIdleConnections(),
+			ConnMaxLifetime:    configManager.MariaDBConnMaxLifetime(),
+		}
+		expensesRepo, err = repositories.NewMariaDBDriver(dbSettings)
 		if err != nil {
 			return nil, err
 		}
