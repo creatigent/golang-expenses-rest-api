@@ -73,5 +73,17 @@ func parseIDsParam(r *http.Request) ([]string, error) {
 			return []string{}, e
 		}
 	}
-	return ids, nil
+	return dedupe(ids), nil
+}
+
+// dedupe parses a list of strings and removes duplicates
+func dedupe(values []string) []string {
+	unique, res := map[string]string{}, make([]string, 0)
+	for _, v := range values {
+		unique[v] = v
+	}
+	for _, v := range unique {
+		res = append(res, v)
+	}
+	return res
 }
