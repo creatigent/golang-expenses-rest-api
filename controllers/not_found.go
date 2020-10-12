@@ -10,6 +10,9 @@ import (
 // NotFound represents the resource not found handler
 func NotFound() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		transport.SendHTTPError(w, models.ResourceNotFoundError{})
+		err := models.ResourceNotFoundError{
+			Message: "route not found",
+		}
+		transport.SendHTTPError(w, err)
 	})
 }
